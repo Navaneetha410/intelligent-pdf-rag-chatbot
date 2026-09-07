@@ -20,8 +20,6 @@ st.markdown(
     """
     <style>
 
-    /* ---------------- MAIN BACKGROUND ---------------- */
-
     .stApp {
         background: linear-gradient(
             135deg,
@@ -30,9 +28,6 @@ st.markdown(
             #eff6ff 100%
         );
     }
-
-
-    /* ---------------- MAIN TITLE ---------------- */
 
     .main-title {
         font-size: 44px;
@@ -43,18 +38,12 @@ st.markdown(
         margin-bottom: 5px;
     }
 
-
-    /* ---------------- SUBTITLE ---------------- */
-
     .subtitle {
         text-align: center;
         font-size: 18px;
         color: #475569;
         margin-bottom: 30px;
     }
-
-
-    /* ---------------- ANSWER CARD ---------------- */
 
     .answer-card {
         padding: 22px;
@@ -71,9 +60,6 @@ st.markdown(
         line-height: 1.6;
     }
 
-
-    /* ---------------- SOURCE CARD ---------------- */
-
     .source-card {
         padding: 12px 16px;
         border-radius: 10px;
@@ -83,9 +69,6 @@ st.markdown(
         margin-top: 8px;
     }
 
-
-    /* ---------------- FILE UPLOADER ---------------- */
-
     [data-testid="stFileUploader"] {
         background: white;
         border-radius: 15px;
@@ -93,17 +76,11 @@ st.markdown(
         border: 2px dashed #818cf8;
     }
 
-
-    /* ---------------- TEXT INPUT ---------------- */
-
     [data-testid="stTextInput"] input {
         border-radius: 12px;
         border: 2px solid #c4b5fd;
         padding: 12px;
     }
-
-
-    /* ---------------- METRIC BOXES ---------------- */
 
     [data-testid="stMetric"] {
         background: white;
@@ -111,9 +88,6 @@ st.markdown(
         border-radius: 15px;
         box-shadow: 0 4px 15px rgba(79, 70, 229, 0.10);
     }
-
-
-    /* ---------------- SIDEBAR ---------------- */
 
     section[data-testid="stSidebar"] {
         background: linear-gradient(
@@ -124,15 +98,9 @@ st.markdown(
         );
     }
 
-
-    /* ---------------- SIDEBAR TEXT ---------------- */
-
     section[data-testid="stSidebar"] * {
         color: white !important;
     }
-
-
-    /* ---------------- SUCCESS / INFO BOX ---------------- */
 
     [data-testid="stAlert"] {
         border-radius: 12px;
@@ -176,22 +144,6 @@ def get_embeddings():
 
 
 # =========================================================
-# LOCAL LLM
-# =========================================================
-
-@st.cache_resource
-def get_llm():
-
-    from langchain_ollama import ChatOllama
-
-    return ChatOllama(
-        model="qwen2.5:0.5b",
-        temperature=0,
-        base_url="http://localhost:11434"
-    )
-
-
-# =========================================================
 # CREATE VECTOR DATABASE
 # =========================================================
 
@@ -202,15 +154,12 @@ def create_vector_store(pdf_bytes):
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_community.vectorstores import FAISS
 
-    # Save uploaded PDF
     with open("uploaded.pdf", "wb") as f:
         f.write(pdf_bytes)
 
-    # Load PDF
     loader = PyPDFLoader("uploaded.pdf")
     documents = loader.load()
 
-    # Split PDF text
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=100
@@ -218,16 +167,30 @@ def create_vector_store(pdf_bytes):
 
     chunks = text_splitter.split_documents(documents)
 
-    # Create embeddings
     embeddings = get_embeddings()
 
-    # Create FAISS vector database
     vector_store = FAISS.from_documents(
         chunks,
         embeddings
     )
 
     return vector_store, len(documents), len(chunks)
+
+
+# =========================================================
+# GEMINI
+# =========================================================
+
+@st.cache_resource
+def get_gemini_client():
+
+    from google import genai
+
+    api_key = st.secrets["GEMINI_API_KEY"]
+
+    return genai.Client(
+        api_key=api_key
+    )
 
 
 # =========================================================
@@ -252,7 +215,7 @@ with st.sidebar:
     st.write("🔎 **Method:** RAG")
     st.write("🧠 **Embeddings:** Hugging Face")
     st.write("🗂️ **Vector DB:** FAISS")
-    st.write("🤖 **LLM:** Ollama")
+    st.write("🤖 **LLM:** Gemini")
 
     st.markdown("---")
 
@@ -269,7 +232,6 @@ if uploaded_file:
 
     pdf_bytes = uploaded_file.getvalue()
 
-    # Process PDF
     with st.spinner("🔄 Processing your PDF..."):
 
         vector_store, page_count, chunk_count = create_vector_store(
@@ -278,36 +240,18 @@ if uploaded_file:
 
     st.success("✅ PDF processed successfully!")
 
-    # =====================================================
-    # PDF INFORMATION
-    # =====================================================
-
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric(
-            "📄 Pages",
-            page_count
-        )
+        st.metric("📄 Pages", page_count)
 
     with col2:
-        st.metric(
-            "🧩 Text Chunks",
-            chunk_count
-        )
+        st.metric("🧩 Text Chunks", chunk_count)
 
     with col3:
-        st.metric(
-            "🔎 Retrieved Chunks",
-            2
-        )
+        st.metric("🔎 Retrieved Chunks", 2)
 
     st.markdown("---")
-
-
-    # =====================================================
-    # QUESTION AREA
-    # =====================================================
 
     st.subheader("💬 Ask a Question")
 
@@ -316,89 +260,57 @@ if uploaded_file:
         placeholder="Example: What is the main topic of this document?"
     )
 
-
-    # =====================================================
-    # QUESTION ANSWERING
-    # =====================================================
-
     if question:
 
         with st.spinner(
             "🤖 Searching the PDF and generating answer..."
         ):
 
-            # Retrieve relevant PDF chunks
             relevant_docs = vector_store.similarity_search(
                 question,
                 k=2
             )
 
-            # Prepare context
             context = "\n\n".join(
                 doc.page_content
                 for doc in relevant_docs
             )
 
+            prompt = f"""
+You are a PDF question-answering assistant.
 
-            # Prompt
-            from langchain_core.prompts import ChatPromptTemplate
+Answer the user's question using ONLY the information
+provided in the context below.
 
-            prompt = ChatPromptTemplate.from_template(
-                """
-                Answer the question using only the information
-                provided in the context below.
+If the answer is not present in the context, say:
+"I could not find the answer in the PDF."
 
-                If the answer is not in the context, say:
+Keep the answer simple and clear.
 
-                "I could not find the answer in the PDF."
+Context:
+{context}
 
-                Keep the answer simple and clear.
+Question:
+{question}
+"""
 
-                Context:
-                {context}
+            client = get_gemini_client()
 
-                Question:
-                {question}
-                """
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
             )
-
-
-            # Load local LLM
-            llm = get_llm()
-
-
-            # Create chain
-            chain = prompt | llm
-
-
-            # Generate response
-            response = chain.invoke(
-                {
-                    "context": context,
-                    "question": question
-                }
-            )
-
-
-        # =================================================
-        # ANSWER
-        # =================================================
 
         st.subheader("🤖 Answer")
 
         st.markdown(
             f"""
             <div class="answer-card">
-            {response.content}
+            {response.text}
             </div>
             """,
             unsafe_allow_html=True
         )
-
-
-        # =================================================
-        # SOURCES
-        # =================================================
 
         st.subheader("📚 Sources")
 
@@ -477,4 +389,4 @@ else:
         st.write("🤗 Hugging Face")
 
     with tech5:
-        st.write("🦙 Ollama")
+        st.write("✨ Gemini")
