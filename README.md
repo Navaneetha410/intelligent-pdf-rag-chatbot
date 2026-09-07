@@ -1,6 +1,6 @@
 # Intelligent PDF Q&A Chatbot using RAG
 
-A PDF question-answering chatbot built using Python, LangChain, RAG, FAISS, Hugging Face embeddings, Ollama, and Streamlit.
+An intelligent PDF question-answering chatbot built using Python, LangChain, RAG, FAISS, Hugging Face embeddings, Ollama, and Streamlit.
 
 ## Features
 
@@ -11,28 +11,37 @@ A PDF question-answering chatbot built using Python, LangChain, RAG, FAISS, Hugg
 - Retrieve relevant PDF content
 - Generate answers using a local Ollama model
 - Display source pages
+- Interactive and colorful Streamlit interface
 
 ## Technologies Used
 
 - Python
 - LangChain
 - Streamlit
-- Hugging Face
+- Hugging Face Embeddings
 - FAISS
 - Ollama
 - PyPDF
 
+## RAG Workflow
+
+PDF → Text Splitting → Embeddings → FAISS → Similarity Search → Ollama → Answer
+
 ## How to Run
 
+### 1. Download the Project
+
+Download or clone this repository to your computer.
+
+### 2. Create and Activate Virtual Environment
+
+Open the VS Code terminal and run:
+
 ```bash
+python -m venv venv
+venv\Scripts\activate
+
+pip install -r requirements.txt
+ollama pull qwen2.5:0.5b
+ollama run qwen2.5:0.5b
 python -m streamlit run app.py
-
-## Screenshots
-
-### Chatbot Interface
-
-![Chatbot Interface](Screenshot%202026-09-07%20131722.png)
-
-### Chatbot Answer
-
-![Chatbot Answer](Screenshot%202026-09-07%20131755.png)
