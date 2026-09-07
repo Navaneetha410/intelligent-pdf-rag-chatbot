@@ -1,3 +1,8 @@
+## Live Demo
+
+[Open Live Demo](https://intelligent-pdf-rag-chatbot-4l5qz46fwefte7thdgtxx3.streamlit.app/)
+
+
 # Intelligent PDF Q&A Chatbot using RAG
 
 An intelligent PDF question-answering chatbot built using Python, LangChain, RAG, FAISS, Hugging Face embeddings, Ollama, and Streamlit.
