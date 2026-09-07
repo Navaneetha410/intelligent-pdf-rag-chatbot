@@ -26,3 +26,13 @@ A PDF question-answering chatbot built using Python, LangChain, RAG, FAISS, Hugg
 
 ```bash
 python -m streamlit run app.py
+
+## Screenshots
+
+### Chatbot Interface
+
+![Chatbot Interface](Screenshot%202026-09-07%20131722.png)
+
+### Chatbot Answer
+
+![Chatbot Answer](Screenshot%202026-09-07%20131755.png)
